@@ -55,6 +55,7 @@ module MultiTypeSymbolTable
             const name = nextName(),
                   response = MsgTuple.newSymbol(name, symbol.borrow());
             tab.addOrReplace(name, symbol);
+            symbol.setName(name);
             mtLogger.info(getModuleName(),getRoutineName(),getLineNumber(),response.msg);
             return response;
         }

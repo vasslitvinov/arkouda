@@ -112,28 +112,24 @@ module CheckpointMsg {
 
     for (name, entry) in zip(st.tab.keys(), st.tab.values()) {
       try {
-        var gse = toGenSymEntry(entry);
-
-        // TODO we can expand this
-        if gse.ndim != 1 then continue;
-
-        // These types are the only types parquet IO supports right now.
-        select gse.dtype {
-          when DType.UInt64  do saveArr(cpPath, name, gse: getSEType(uint(64)));
-          when DType.Int64   do saveArr(cpPath, name, gse: getSEType(int(64)));
-          when DType.Float64 do saveArr(cpPath, name, gse: getSEType(real(64)));
-          when DType.Bool    do saveArr(cpPath, name, gse: getSEType(bool));
-          otherwise          do continue;
-        }
-        cpLogger.debug(M(), R(), L(), "Saved entry %s".format(name));
+        if name != entry.name then
+          cpLogger.error(M(), R(), L(), "SymTab name ", name,
+                         " differs from entry.name ", entry.name, ".");
+        entry.checkpointTo(cpPath, name);
+        cpLogger.debug(M(), R(), L(), "checkpointed the entry ", name);
       }
-      catch err: ClassCastError {
-        // we couldn't build a symentry, not saving this entry
-        cpLogger.debug(M(), R(), L(), "Cannot save %s".format(name));
+      catch err: NotImplementedError {
+        cpLogger.debug(M(), R(), L(), "checkpointing not implemented for ",
+                       name, " which is ", entry.entryType:string);
       }
     }
 
     updateLastCkptCompletion();
+  }
+
+  // to be implemented by concrete subclasses
+  proc AbstractSymEntry.checkpointTo(path, name) throws {
+    throw new NotImplementedError("checkpointing for " + name, L(), R(), M());
   }
 
   proc saveCheckpointMsg(cmd: string, msgArgs: borrowed MessageArgs,
@@ -344,7 +340,8 @@ module CheckpointMsg {
     mdWriter.writeln(toJson(serverMD));
   }
 
-  private proc saveArr(path, name, entry) throws {
+  override proc SymEntry.checkpointTo(path, name) throws {
+    const entry = this;
     const arrMD = new arrayMetadata(name, entry.size,
                                     entry.a.targetLocales().size);
 
