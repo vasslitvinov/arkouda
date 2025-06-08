@@ -378,6 +378,17 @@ module ServerConfig
         }
     }
 
+    // use this arrayDimIsSupported() instead of MaxArrayDims
+    // could clone it for a non-param argument
+    proc arrayDimIsSupported(param dim: int) param : bool {
+      use RegistrationConfig;
+      for param idx in 0..arrayDimensionsTy.size-1 {
+        param supportedDim = arrayDimensionsTy[idx].size;
+        if dim == supportedDim then return true;
+      }
+      return false;
+    }
+
     proc string.splitMsgToTuple(param numChunks: int) {
       var tup: numChunks*string;
       var count = tup.indices.low;

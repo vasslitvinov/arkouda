@@ -116,10 +116,10 @@ module CheckpointMsg {
           cpLogger.error(M(), R(), L(), "SymTab name ", name,
                          " differs from entry.name ", entry.name, ".");
         entry.checkpointTo(cpPath, name);
-        cpLogger.debug(M(), R(), L(), "checkpointed the entry ", name);
+        cpLogger.debug(M(), R(), L(), "Checkpointed the entry ", name);
       }
       catch err: NotImplementedError {
-        cpLogger.debug(M(), R(), L(), "checkpointing not implemented for ",
+        cpLogger.debug(M(), R(), L(), "Checkpointing not implemented for ",
                        name, " which is ", entry.entryType:string);
       }
     }
@@ -169,26 +169,39 @@ module CheckpointMsg {
       return Msg.error("Can't find the server metadata in the saved session.");
     }
 
-    cpLogger.debug(M(), R(), L(), "Metadata loaded");
-
-    var rnames: list((string, ObjType, string));
+    cpLogger.debug(M(), R(), L(), "Metadata loaded for ", loadedId);
 
     // iterate over metadata while loading individual data for each metadata
     for mdName in glob(cpPath+"/*"+metadataExt) {
       // skip the server metadata
       if mdName == Path.joinPath(cpPath, serverMetadataName) then continue;
 
-      cpLogger.debug(M(), R(), L(),
-                     "Loading array with metadata %s".format(mdName));
-      // load the array (data and metadata)
-      var (name, entry) = loadArr(cpPath, mdName, loadedId);
+      cpLogger.debug(M(), R(), L(), "Loading entry with metadata ", mdName);
+      var mdReader = IO.open(mdName, ioMode.r).reader(locking=false);
+      use Map;
+      const mdHeader = mdReader.withDeserializer(jsonDeserializer)
+                        .read(map(string,string));
+      try {
+        var entry: shared AbstractSymEntry;
+        select mdHeader["entryType"] {
+          when "PrimitiveTypedArraySymEntry" do
+            entry = loadPTA(mdReader, mdHeader, mdName);
+          otherwise do
+            // we should be able to load everything we saved
+            throw new NotImplementedError("checkpointing for " + mdName, L(), R(), M());
+        }
 
-      st.addEntry(name, entry);
+        if entry.name.isEmpty() then
+          throw new LoadCheckpointError("Entry in " + mdName + " has empty name");
 
-      cpLogger.debug(M(), R(), L(),
-                     "Loaded array with metadata %s".format(mdName));
+        st.addEntry(entry.name, entry);
+        cpLogger.debug(M(), R(), L(), "Added entry with metadata ", mdName);
 
+      } catch err: KeyNotFoundError {
+        throw new LoadCheckpointError("Metadata in " + mdName + ": " + err.message());
+      }
     }
+
     updateLastCkptCompletion();
     return Msg.send(nameArg);
   }
@@ -327,10 +340,6 @@ module CheckpointMsg {
     return "";
   }
 
-  private proc getSEType(type t) type {
-    return borrowed SymEntry(t, dimensions=1);
-  }
-
   private proc saveServerMetadata(path, st: borrowed SymTab) throws {
     const serverMD = new serverMetadata(st.serverid, numLocales);
 
@@ -399,6 +408,12 @@ module CheckpointMsg {
 
     return metadata.serverid;
   }
+
+   private proc loadPTA(mdReader, mdHeader, mdName) {
+     return new shared AbstractSymEntry();//wass
+   }
+
+// wass was:  var (name, entry) = loadArr(cpPath, mdName, loadedId);
 
   private proc loadArr(path, mdName, loadedId) throws {
     cpLogger.debug(M(), R(), L(), "Reading %s".format(mdName));
