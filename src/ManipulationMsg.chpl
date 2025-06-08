@@ -450,8 +450,6 @@ module ManipulationMsg {
   // insert a new singleton dimension at the given axis
   @arkouda.instantiateAndRegister(prefix='expandDims')
   proc expandDimsMsg(cmd: string, msgArgs: borrowed MessageArgs, st: borrowed SymTab, type array_dtype, param array_nd: int): MsgTuple throws {
-    use RegistrationConfig;
-
     param pn = Reflection.getRoutineName();
 
     if ! arrayDimIsSupported(array_nd+1) {
@@ -903,7 +901,6 @@ module ManipulationMsg {
   // https://data-apis.org/array-api/latest/API_specification/generated/array_api.stack.html#array_api.stack
   @arkouda.instantiateAndRegister(prefix='stack')
   proc stackMsg(cmd: string, msgArgs: borrowed MessageArgs, st: borrowed SymTab, type array_dtype, param array_nd: int): MsgTuple throws {
-    use RegistrationConfig;
     param pn = Reflection.getRoutineName();
 
     if ! arrayDimIsSupported(array_nd+1) {

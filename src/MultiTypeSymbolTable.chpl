@@ -74,6 +74,9 @@ module MultiTypeSymbolTable
             :returns: borrow of newly created `SymEntry(t)`
         */
         proc addEntry(name: string, shape: int ...?N, type t): borrowed SymEntry(t, N) throws {
+            if ! arrayDimIsSupported(N) then compilerWarning("arrays with rank ", N:string,
+              " are not included in the server's configured ranks: ", arrayDimensionsStr);
+
             // check and throw if memory limit would be exceeded
             // TODO figure out a way to do memory checking for bigint
             if t != bigint {
@@ -147,31 +150,18 @@ module MultiTypeSymbolTable
         :returns: borrow of newly created GenSymEntry
         */
         proc addEntry(name: string, shape: int ...?ND, dtype: DType): borrowed AbstractSymEntry throws {
-            select dtype {
-                when DType.Int64 { return addEntry(name, (...shape), int); }
-                when DType.Int32 { return addEntry(name, (...shape), int(32)); }
-                when DType.Int16 { return addEntry(name, (...shape), int(16)); }
-                when DType.Int8 { return addEntry(name, (...shape), int(8)); }
-                when DType.UInt64 { return addEntry(name, (...shape), uint); }
-                when DType.UInt32 { return addEntry(name, (...shape), uint(32)); }
-                when DType.UInt16 { return addEntry(name, (...shape), uint(16)); }
-                when DType.UInt8 { return addEntry(name, (...shape), uint(8)); }
-                when DType.Float64 { return addEntry(name, (...shape), real); }
-                when DType.Float32 { return addEntry(name, (...shape), real(32)); }
-                when DType.Complex128 { return addEntry(name, (...shape), complex(128)); }
-                when DType.Complex64 { return addEntry(name, (...shape), complex(64)); }
-                when DType.Bool { return addEntry(name, (...shape), bool); }
-                when DType.BigInt { return addEntry(name, (...shape), bigint); }
-                otherwise {
-                    var errorMsg = "addEntry not implemented for %?".format(dtype);
-                    throw getErrorWithContext(
-                        msg=errorMsg,
-                        lineNumber=getLineNumber(),
-                        routineName=getRoutineName(),
-                        moduleName=getModuleName(),
-                        errorClass="IllegalArgumentError");
-                }
+            for param idx in 0..arrayElementsTy.size-1 {
+                type supportedType = arrayElementsTy[idx];
+                if dtype == whichDtype(supportedType) then
+                    return addEntry(name, (...shape), supportedType);
             }
+            var errorMsg = "addEntry not implemented for %?".format(dtype);
+            throw getErrorWithContext(
+                msg=errorMsg,
+                lineNumber=getLineNumber(),
+                routineName=getRoutineName(),
+                moduleName=getModuleName(),
+                errorClass="IllegalArgumentError");
         }
 
         proc addEntry(name: string, shape: ?ND*int, dtype: DType): borrowed AbstractSymEntry throws

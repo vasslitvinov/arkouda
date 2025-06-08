@@ -164,9 +164,8 @@ module MsgProcessing
     :returns: MsgTuple
      */
     proc getRegistrationConfig(cmd: string, msgArgs: borrowed MessageArgs, st: borrowed SymTab): MsgTuple throws {
-        import RegistrationConfig;
         mpLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),"cmd: ", cmd);
-        return new MsgTuple(RegistrationConfig.regConfig, MsgType.NORMAL);
+        return new MsgTuple(ServerConfig.regConfig, MsgType.NORMAL);
     }
 
     /* 
