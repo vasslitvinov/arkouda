@@ -94,9 +94,8 @@ module MultiTypeSymbolTable
 
             tab.addOrReplace(name, entry);
             entry.setName(name);
-            // When we retrieve from table, it comes back as AbstractSymEntry so we need to cast it
-            // back to the original type. Since we know it already we can skip isAssignableTo check
-            return (tab[name]:borrowed GenSymEntry).toSymEntry(t, N);
+
+            return entry :borrowed :unmanaged :borrowed; // suppress lifetime checking
         }
 
         proc addEntry(name: string, shape: ?ND*int, type t): borrowed SymEntry(t, ND) throws

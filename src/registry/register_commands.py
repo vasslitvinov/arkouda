@@ -1384,7 +1384,7 @@ def getModuleFiles(config, src_dir):
 
 
 def watermarkConfig(config):
-    return 'param regConfig = """\n' + json.dumps(config, indent=2) + '\n""";'
+    return 'param registrationConfigSpec = """\n' + json.dumps(config, indent=2) + '\n""";'
 
 
 def main():
